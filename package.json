@@ -5,7 +5,7 @@
   "main": "build/main/index.js",
   "typings": "build/main/index.d.ts",
   "module": "build/module/index.js",
-  "repository": "https://github.com/YOUR_GITHUB_USER_NAME/us-alerts",
+  "repository": "https://github.com/KL-Engineering/user-service-alerts/",
   "license": "MIT",
   "keywords": [],
   "scripts": {
@@ -39,10 +39,12 @@
     "prepare-release": "run-s reset-hard test cov:check doc:html version doc:publish"
   },
   "engines": {
-    "node": ">=10"
+    "node": "16.0.0"
   },
   "dependencies": {
-    "@bitauth/libauth": "^1.17.1"
+    "@bitauth/libauth": "^1.17.1",
+    "axios": "0.21.4",
+    "dotenv": "10.0.0"
   },
   "devDependencies": {
     "@ava/typescript": "^1.1.1",
