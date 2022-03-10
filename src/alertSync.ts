@@ -8,7 +8,7 @@ import { objectToKey } from './utils/stringUtils'
 import { AlertOpMode, AlertPolicy } from './model/nr-alerts'
 import { config } from './config'
 
-async function syncAlphaAlerts() {
+async function syncAlphaPolicies() {
     dotenv.config()
     const apiKey = process.env.NR_API_KEY!
 
@@ -126,4 +126,4 @@ function syncPolicy(
         })
 }
 
-void syncAlphaAlerts()
+void syncAlphaPolicies()
