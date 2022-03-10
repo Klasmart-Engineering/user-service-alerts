@@ -5,19 +5,8 @@ import axios, { AxiosResponse } from 'axios'
 import dotenv from 'dotenv'
 
 import { objectToKey } from './utils/stringUtils'
-
-enum AlertOpMode {
-    CREATE = 'Create',
-    UPDATE = 'Update',
-}
-
-interface AlertPolicy {
-    id?: number
-    incident_preference: string
-    name: string
-    created_at?: number
-    updated_at?: number
-}
+import { AlertOpMode, AlertPolicy } from './model/nr-alerts'
+import { config } from './config'
 
 async function syncAlphaAlerts() {
     dotenv.config()
@@ -35,12 +24,12 @@ async function syncAlphaAlerts() {
     // - execute it with the API
     // - update local with auto-updated remote fields
     const policyJsonsInLocal = fs
-        .readdirSync('./src/alerts-poc/alpha/policies')
+        .readdirSync(config.ALPHA_POLICY_FILEPATH)
         .filter((file) => path.extname(file) === '.json')
 
     policyJsonsInLocal.forEach((policyJsonFilename) => {
         const fileData = fs.readFileSync(
-            path.join('./src/alerts-poc/alpha/policies', policyJsonFilename)
+            path.join(config.ALPHA_POLICY_FILEPATH, policyJsonFilename)
         )
         const localPolicy = JSON.parse(fileData.toString()) as AlertPolicy
 
