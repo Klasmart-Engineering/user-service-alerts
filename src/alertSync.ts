@@ -1,129 +1,163 @@
-import fs from 'fs'
-import path from 'path'
+import fs from 'fs';
+import path from 'path';
 
-import axios, { AxiosResponse } from 'axios'
-import dotenv from 'dotenv'
+import axios, { AxiosResponse } from 'axios';
+import dotenv from 'dotenv';
 
-import { objectToKey } from './utils/stringUtils'
-import { AlertOpMode, AlertPolicy } from './model/nr-alerts'
-import { config } from './config'
+import { objectToKey } from './utils/stringUtils';
+import {
+  AlertOpMode,
+  AlertPolicyNerdGraph,
+  Environment,
+} from './model/nr-alerts';
+import { config } from './config';
 
-async function syncAlphaPolicies() {
-    dotenv.config()
-    const apiKey = process.env.NR_API_KEY!
+async function syncPolicies(env: Environment) {
+  dotenv.config();
+  const apiKey = process.env.NR_API_KEY!;
+  const policyFolderPath =
+    env == Environment.ALPHA
+      ? config.ALPHA_POLICY_FILEPATH
+      : config.PROD_POLICY_FILEPATH;
 
-    // Fetch all existing policies from remote
-    const remotePolicies = (
-        await axios.get('https://api.eu.newrelic.com/v2/alerts_policies.json', {
-            headers: { 'X-Api-Key': apiKey },
-        })
-    ).data['policies'] as AlertPolicy[]
-
-    // Step through each local policy:
-    // - determine create/update
-    // - execute it with the API
-    // - update local with auto-updated remote fields
-    const policyJsonsInLocal = fs
-        .readdirSync(config.ALPHA_POLICY_FILEPATH)
-        .filter((file) => path.extname(file) === '.json')
-
-    policyJsonsInLocal.forEach((policyJsonFilename) => {
-        const fileData = fs.readFileSync(
-            path.join(config.ALPHA_POLICY_FILEPATH, policyJsonFilename)
-        )
-        const localPolicy = JSON.parse(fileData.toString()) as AlertPolicy
-
-        // Find corresponding remote policy, if any
-        const correspondingRemotePolicy = remotePolicies.find(
-            (remotePolicy) => {
-                if (localPolicy.id) {
-                    return localPolicy.id == remotePolicy.id! // Remote policy ID always exists
-                } else {
-                    return localPolicy.name == remotePolicy.name // Remote policy name always exists
+  // Fetch all existing policies from remote (NerdGraph API)
+  const remotePolicies = (
+    await axios.post('https://api.eu.newrelic.com/graphql', {
+      headers: { 'X-Api-Key': apiKey, 'Content-Type': 'application/json' },
+      query: `query policies($accountId: Int!){
+                actor {
+                  account(id: $accountId) {
+                    alerts {
+                      policiesSearch {
+                        policies {
+                          id
+                          name
+                          incidentPreference
+                          accountId
+                        }
+                      }
+                    }
+                  }
                 }
-            }
-        )
-
-        if (correspondingRemotePolicy) {
-            // Update case
-            if (
-                localPolicy.id &&
-                objectToKey({ localPolicy }) !==
-                    objectToKey({ correspondingRemotePolicy })
-            ) {
-                syncPolicy(
-                    localPolicy,
-                    policyJsonFilename,
-                    apiKey,
-                    AlertOpMode.UPDATE
-                )
-            }
-        } else {
-            // Creation case
-            syncPolicy(
-                localPolicy,
-                policyJsonFilename,
-                apiKey,
-                AlertOpMode.CREATE
-            )
-        }
+            }`,
+      variables: {
+        accountId: config.NR_ACCOUNT_ID,
+      },
     })
+  ).data['data']['actor']['account']['alerts']['policiesSearch'][
+    'policies'
+  ] as AlertPolicyNerdGraph[];
+
+  // Step through each local policy:
+  // - determine create/update
+  // - execute it with the API
+  // - update local with auto-updated remote fields
+  const policyJsonsInLocal = fs
+    .readdirSync(policyFolderPath)
+    .filter((file) => path.extname(file) === '.json');
+
+  policyJsonsInLocal.forEach((policyJsonFilename) => {
+    const fileData = fs.readFileSync(
+      path.join(policyFolderPath, policyJsonFilename)
+    );
+    const localPolicy = JSON.parse(fileData.toString()) as AlertPolicyNerdGraph;
+
+    // Find corresponding remote policy, if any
+    const correspondingRemotePolicy = remotePolicies.find((remotePolicy) => {
+      if (localPolicy.id) {
+        return localPolicy.id == remotePolicy.id!; // Remote policy ID always exists
+      } else {
+        return localPolicy.name == remotePolicy.name; // Remote policy name always exists
+      }
+    });
+
+    if (correspondingRemotePolicy) {
+      // Update case
+      if (
+        localPolicy.id &&
+        objectToKey({ localPolicy }) !==
+          objectToKey({ correspondingRemotePolicy })
+      ) {
+        syncPolicy(
+          env,
+          localPolicy,
+          policyJsonFilename,
+          apiKey,
+          AlertOpMode.UPDATE
+        );
+      }
+    } else {
+      // Creation case
+      syncPolicy(
+        env,
+        localPolicy,
+        policyJsonFilename,
+        apiKey,
+        AlertOpMode.CREATE
+      );
+    }
+  });
 }
 
 function syncPolicy(
-    localPolicy: AlertPolicy,
-    policyJsonFilename: string,
-    apiKey: string,
-    mode: AlertOpMode
+  env: Environment,
+  localPolicy: AlertPolicyNerdGraph,
+  policyJsonFilename: string,
+  apiKey: string,
+  mode: AlertOpMode
 ) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let nrResponse: Promise<AxiosResponse<any>>
+  const policyFolderPath =
+    env == Environment.ALPHA
+      ? config.ALPHA_POLICY_FILEPATH
+      : config.PROD_POLICY_FILEPATH;
 
-    if (mode == AlertOpMode.UPDATE) {
-        nrResponse = axios.put(
-            `https://api.eu.newrelic.com/v2/alerts_policies/${localPolicy.id}.json`,
-            {
-                policy: {
-                    id: localPolicy.id,
-                    incident_preference: localPolicy.incident_preference,
-                    name: localPolicy.name,
-                },
-            },
-            { headers: { 'X-Api-Key': apiKey } }
-        )
-    } else if (mode == AlertOpMode.CREATE) {
-        nrResponse = axios.post(
-            'https://api.eu.newrelic.com/v2/alerts_policies.json',
-            { policy: localPolicy },
-            { headers: { 'X-Api-Key': apiKey } }
-        )
-    } else {
-        throw Error('AlertSync: Invalid sync mode specified')
-    }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let nrResponse: Promise<AxiosResponse<any>>;
 
-    // Do this for create and update cases
-    // For deletion (conditions, not policies), this will require a small modification
-    nrResponse
-        .then((resp) => {
-            const remotePolicy = JSON.stringify(resp.data.policy as AlertPolicy)
-            fs.writeFile(
-                path.join(
-                    './src/alerts-poc/alpha/policies',
-                    policyJsonFilename
-                ),
-                remotePolicy,
-                (error) => {
-                    if (error) {
-                        throw error
-                    }
-                }
-            )
-            console.log(`[POLICY UPDATE]: ${policyJsonFilename} processed`)
-        })
-        .catch((resp) => {
-            console.log('Error occurred during alert policy update:')
-            console.log(resp.data.error)
-        })
+  if (mode == AlertOpMode.UPDATE) {
+    nrResponse = axios.put(
+      `https://api.eu.newrelic.com/v2/alerts_policies/${localPolicy.id}.json`,
+      {
+        policy: {
+          id: localPolicy.id,
+          incident_preference: localPolicy.incident_preference,
+          name: localPolicy.name,
+        },
+      },
+      { headers: { 'X-Api-Key': apiKey } }
+    );
+  } else if (mode == AlertOpMode.CREATE) {
+    nrResponse = axios.post(
+      'https://api.eu.newrelic.com/v2/alerts_policies.json',
+      { policy: localPolicy },
+      { headers: { 'X-Api-Key': apiKey } }
+    );
+  } else {
+    throw Error('AlertSync: Invalid sync mode specified');
+  }
+
+  // Do this for create and update cases
+  // For deletion (conditions, not policies), this will require a small modification
+  nrResponse
+    .then((resp) => {
+      const remotePolicy = JSON.stringify(
+        resp.data.policy as AlertPolicyNerdGraph
+      );
+      fs.writeFile(
+        path.join(policyFolderPath, policyJsonFilename),
+        remotePolicy,
+        (error) => {
+          if (error) {
+            throw error;
+          }
+        }
+      );
+      console.log(`[POLICY UPDATE]: ${policyJsonFilename} processed`);
+    })
+    .catch((resp) => {
+      console.log('Error occurred during alert policy update:');
+      console.log(resp.data.error);
+    });
 }
 
-void syncAlphaPolicies()
+void syncPolicies(Environment.ALPHA);
