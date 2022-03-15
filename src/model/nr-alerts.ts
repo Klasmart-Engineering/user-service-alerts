@@ -17,14 +17,14 @@ export interface AlertPolicyNerdGraph {
 
 export interface AlertConditionNerdGraph {
   enabled: boolean;
-  id: string;
+  id?: string;
   name: string;
   nrql: {
     query: string;
   };
-  policyId: string;
+  policyId?: string;
   runbookUrl?: string;
-  signal: {
+  signal?: {
     aggregationDelay: number;
     aggregationMethod: string;
     aggregationWindow: number;
