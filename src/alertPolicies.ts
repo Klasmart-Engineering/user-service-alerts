@@ -154,8 +154,7 @@ async function syncPolicy(
     throw Error('AlertSync: Invalid sync mode specified');
   }
 
-  // Do this for create and update cases
-  // For deletion (conditions, not policies), this will require a small modification
+  // Write response back to local data (e.g. add ID if policy created)
   nrResponse
     .then((resp) => {
       const remotePolicy = JSON.stringify(
