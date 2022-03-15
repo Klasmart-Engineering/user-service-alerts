@@ -1,6 +1,6 @@
 {
-    "accountId":3286825,
-    "id":"288280",
-    "incidentPreference":"PER_CONDITION",
-    "name":"User Service Alpha Application Alerts Test"
+  "accountId": 3286825,
+  "id": "288280",
+  "incidentPreference": "PER_CONDITION",
+  "name": "User Service Alpha Application Alerts"
 }
