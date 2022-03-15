@@ -14,7 +14,7 @@ import {
 import { config } from './config';
 import { CREATE_POLICY, QUERY_POLICIES, UPDATE_POLICY } from './queries';
 
-async function syncPolicies(env: Environment) {
+export async function syncPolicies(env: Environment) {
   dotenv.config();
   const apiKey = process.env.NR_API_KEY!;
   const policyFolderPath =
@@ -178,5 +178,3 @@ async function syncPolicy(
       throw Error('AlertSync: Error occurred when syncing alert policies');
     });
 }
-
-void syncPolicies(Environment.ALPHA);
