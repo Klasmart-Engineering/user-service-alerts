@@ -44,3 +44,42 @@ export const CREATE_POLICY = gql`
     }
   }
 `;
+
+export const QUERY_CONDITIONS_FOR_POLICY = gql`
+  query fetchConditionsForPolicy(
+    $accountId: Int!
+    $searchCriteria: AlertsNrqlConditionsSearchCriteriaInput
+  ) {
+    actor {
+      account(id: $accountId) {
+        alerts {
+          nrqlConditionsSearch(searchCriteria: $searchCriteria) {
+            nrqlConditions {
+              id
+              name
+              enabled
+              nrql {
+                query
+              }
+              policyId
+              runbookUrl
+              type
+              terms {
+                threshold
+                thresholdDuration
+                operator
+                priority
+                thresholdOccurrences
+              }
+              signal {
+                aggregationDelay
+                aggregationMethod
+                aggregationWindow
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`;
