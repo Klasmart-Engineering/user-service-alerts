@@ -3,6 +3,7 @@ import path from 'path';
 
 import axios, { AxiosResponse } from 'axios';
 import dotenv from 'dotenv';
+import { print } from 'graphql';
 
 import { objectToKey } from './utils/stringUtils';
 import {
@@ -11,6 +12,7 @@ import {
   Environment,
 } from './model/nr-alerts';
 import { config } from './config';
+import { CREATE_POLICY, QUERY_POLICIES, UPDATE_POLICY } from './queries';
 
 async function syncPolicies(env: Environment) {
   dotenv.config();
@@ -19,34 +21,31 @@ async function syncPolicies(env: Environment) {
     env == Environment.ALPHA
       ? config.ALPHA_POLICY_FILEPATH
       : config.PROD_POLICY_FILEPATH;
+  let remotePolicies: AlertPolicyNerdGraph[];
 
   // Fetch all existing policies from remote (NerdGraph API)
-  const remotePolicies = (
-    await axios.post('https://api.eu.newrelic.com/graphql', {
-      headers: { 'X-Api-Key': apiKey, 'Content-Type': 'application/json' },
-      query: `query policies($accountId: Int!){
-                actor {
-                  account(id: $accountId) {
-                    alerts {
-                      policiesSearch {
-                        policies {
-                          id
-                          name
-                          incidentPreference
-                          accountId
-                        }
-                      }
-                    }
-                  }
-                }
-            }`,
-      variables: {
-        accountId: config.NR_ACCOUNT_ID,
+  await axios
+    .post(
+      'https://api.eu.newrelic.com/graphql',
+      {
+        query: print(QUERY_POLICIES),
+        variables: {
+          accountId: config.NR_ACCOUNT_ID,
+        },
       },
+      {
+        headers: { 'Api-Key': apiKey, 'Content-Type': 'application/json' },
+      }
+    )
+    .then((resp) => {
+      remotePolicies = resp.data.data.actor.account.alerts.policiesSearch
+        .policies as AlertPolicyNerdGraph[];
     })
-  ).data['data']['actor']['account']['alerts']['policiesSearch'][
-    'policies'
-  ] as AlertPolicyNerdGraph[];
+    .catch((resp) => {
+      console.log('Error occurred when fetching alert policies:');
+      console.log(resp.data.errors);
+      throw Error('AlertSync: Error occurred when fetching alert policies');
+    });
 
   // Step through each local policy:
   // - determine create/update
@@ -110,49 +109,47 @@ async function syncPolicy(
     env == Environment.ALPHA
       ? config.ALPHA_POLICY_FILEPATH
       : config.PROD_POLICY_FILEPATH;
+  const mutationName =
+    mode == AlertOpMode.UPDATE ? 'alertsPolicyUpdate' : 'alertsPolicyCreate';
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let nrResponse: Promise<AxiosResponse<any>>;
 
   if (mode == AlertOpMode.UPDATE) {
-    nrResponse = axios.post('https://api.eu.newrelic.com/graphql', {
-      headers: { 'X-Api-Key': apiKey, 'Content-Type': 'application/json' },
-      query: `mutation {
-        alertsPolicyUpdate($accountId: Int!, $id: String!, $policy: {$incidentPreference: String, $name: String}!) {
-          accountId
-          id
-          incidentPreference
-          name
-        }
-      }`,
-      variables: {
-        accountId: config.NR_ACCOUNT_ID,
-        id: localPolicy.id,
-        policy: {
-          incidentPreference: localPolicy.incident_preference,
-          name: localPolicy.name,
+    nrResponse = axios.post(
+      'https://api.eu.newrelic.com/graphql',
+      {
+        query: print(UPDATE_POLICY),
+        variables: {
+          accountId: config.NR_ACCOUNT_ID,
+          id: localPolicy.id,
+          policy: {
+            incidentPreference: localPolicy.incidentPreference,
+            name: localPolicy.name,
+          },
         },
       },
-    });
+      {
+        headers: { 'Api-Key': apiKey, 'Content-Type': 'application/json' },
+      }
+    );
   } else if (mode == AlertOpMode.CREATE) {
-    nrResponse = axios.post('https://api.eu.newrelic.com/graphql', {
-      headers: { 'X-Api-Key': apiKey, 'Content-Type': 'application/json' },
-      query: `mutation {
-        alertsPolicyCreate($accountId: Int!, $policy: {$incidentPreference: String!, $name: String!}!) {
-          accountId
-          id
-          incidentPreference
-          name
-        }
-      }`,
-      variables: {
-        accountId: config.NR_ACCOUNT_ID,
-        policy: {
-          incidentPreference: localPolicy.incident_preference,
-          name: localPolicy.name,
+    nrResponse = axios.post(
+      'https://api.eu.newrelic.com/graphql',
+      {
+        query: print(CREATE_POLICY),
+        variables: {
+          accountId: config.NR_ACCOUNT_ID,
+          policy: {
+            incidentPreference: localPolicy.incidentPreference,
+            name: localPolicy.name,
+          },
         },
       },
-    });
+      {
+        headers: { 'Api-Key': apiKey, 'Content-Type': 'application/json' },
+      }
+    );
   } else {
     throw Error('AlertSync: Invalid sync mode specified');
   }
@@ -162,7 +159,7 @@ async function syncPolicy(
   nrResponse
     .then((resp) => {
       const remotePolicy = JSON.stringify(
-        resp.data.policy as AlertPolicyNerdGraph
+        resp.data.data[`${mutationName}`] as AlertPolicyNerdGraph
       );
       fs.writeFile(
         path.join(policyFolderPath, policyJsonFilename),
@@ -173,11 +170,12 @@ async function syncPolicy(
           }
         }
       );
-      console.log(`[POLICY UPDATE]: ${policyJsonFilename} processed`);
+      console.log(`[${mutationName}]: ${policyJsonFilename} processed`);
     })
     .catch((resp) => {
-      console.log('Error occurred during alert policy update:');
-      console.log(resp.data.error);
+      console.log(`Error occurred during ${mutationName} operation:`);
+      console.log(resp.data.errors);
+      throw Error('AlertSync: Error occurred when syncing alert policies');
     });
 }
 

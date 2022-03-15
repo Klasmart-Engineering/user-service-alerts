@@ -11,6 +11,6 @@ export enum Environment {
 export interface AlertPolicyNerdGraph {
   accountId: number;
   id?: string;
-  incident_preference: string;
+  incidentPreference: string;
   name: string;
 }
