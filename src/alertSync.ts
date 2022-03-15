@@ -99,7 +99,7 @@ async function syncPolicies(env: Environment) {
   });
 }
 
-function syncPolicy(
+async function syncPolicy(
   env: Environment,
   localPolicy: AlertPolicyNerdGraph,
   policyJsonFilename: string,
@@ -115,23 +115,44 @@ function syncPolicy(
   let nrResponse: Promise<AxiosResponse<any>>;
 
   if (mode == AlertOpMode.UPDATE) {
-    nrResponse = axios.put(
-      `https://api.eu.newrelic.com/v2/alerts_policies/${localPolicy.id}.json`,
-      {
+    nrResponse = axios.post('https://api.eu.newrelic.com/graphql', {
+      headers: { 'X-Api-Key': apiKey, 'Content-Type': 'application/json' },
+      query: `mutation {
+        alertsPolicyUpdate($accountId: Int!, $id: String!, $policy: {$incidentPreference: String, $name: String}!) {
+          accountId
+          id
+          incidentPreference
+          name
+        }
+      }`,
+      variables: {
+        accountId: config.NR_ACCOUNT_ID,
+        id: localPolicy.id,
         policy: {
-          id: localPolicy.id,
-          incident_preference: localPolicy.incident_preference,
+          incidentPreference: localPolicy.incident_preference,
           name: localPolicy.name,
         },
       },
-      { headers: { 'X-Api-Key': apiKey } }
-    );
+    });
   } else if (mode == AlertOpMode.CREATE) {
-    nrResponse = axios.post(
-      'https://api.eu.newrelic.com/v2/alerts_policies.json',
-      { policy: localPolicy },
-      { headers: { 'X-Api-Key': apiKey } }
-    );
+    nrResponse = axios.post('https://api.eu.newrelic.com/graphql', {
+      headers: { 'X-Api-Key': apiKey, 'Content-Type': 'application/json' },
+      query: `mutation {
+        alertsPolicyCreate($accountId: Int!, $policy: {$incidentPreference: String!, $name: String!}!) {
+          accountId
+          id
+          incidentPreference
+          name
+        }
+      }`,
+      variables: {
+        accountId: config.NR_ACCOUNT_ID,
+        policy: {
+          incidentPreference: localPolicy.incident_preference,
+          name: localPolicy.name,
+        },
+      },
+    });
   } else {
     throw Error('AlertSync: Invalid sync mode specified');
   }
