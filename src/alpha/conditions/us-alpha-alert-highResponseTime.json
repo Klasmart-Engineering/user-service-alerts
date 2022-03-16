@@ -20,6 +20,5 @@
       "thresholdDuration": 300,
       "thresholdOccurrences": "ALL"
     }
-  ],
-  "type": "STATIC"
+  ]
 }

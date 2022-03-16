@@ -50,7 +50,7 @@ export async function syncPolicies(env: Environment) {
   // Step through each local policy:
   // - determine create/update
   // - execute it with the API
-  // - update local with auto-updated remote fields
+  // - update local with auto-updated remote fields (e.g. ID)
   const policyJsonsInLocal = fs
     .readdirSync(policyFolderPath)
     .filter((file) => path.extname(file) === '.json');

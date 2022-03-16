@@ -38,5 +38,4 @@ export interface AlertConditionNerdGraph {
       thresholdOccurrences: string;
     }
   ];
-  type: string;
 }
