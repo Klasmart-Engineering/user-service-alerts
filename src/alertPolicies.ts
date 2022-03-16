@@ -55,7 +55,7 @@ export async function syncPolicies(env: Environment) {
     .readdirSync(policyFolderPath)
     .filter((file) => path.extname(file) === '.json');
 
-  policyJsonsInLocal.forEach((policyJsonFilename) => {
+  policyJsonsInLocal.forEach(async (policyJsonFilename) => {
     const fileData = fs.readFileSync(
       path.join(policyFolderPath, policyJsonFilename)
     );
@@ -77,7 +77,7 @@ export async function syncPolicies(env: Environment) {
         objectToKey({ localPolicy }) !==
           objectToKey({ correspondingRemotePolicy })
       ) {
-        syncPolicy(
+        await syncPolicy(
           env,
           localPolicy,
           policyJsonFilename,
@@ -87,7 +87,7 @@ export async function syncPolicies(env: Environment) {
       }
     } else {
       // Creation case
-      syncPolicy(
+      await syncPolicy(
         env,
         localPolicy,
         policyJsonFilename,
@@ -176,4 +176,6 @@ async function syncPolicy(
       console.log(resp.data.errors);
       throw Error('AlertSync: Error occurred when syncing alert policies');
     });
+
+  console.log('Alert Policy sync procedure complete (with or without actions)');
 }
