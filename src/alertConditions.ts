@@ -243,7 +243,7 @@ async function syncCondition(
   }
 
   // Write response back to local data (e.g. add ID if condition created)
-  nrResponse
+  await nrResponse
     .then((resp) => {
       const remoteCondition = JSON.stringify(
         resp.data.data[`${mutationName}`] as AlertConditionNerdGraph
@@ -260,7 +260,6 @@ async function syncCondition(
       console.log(`[${mutationName}]: ${conditionJsonFilename} processed`);
     })
     .catch((resp) => {
-      console.log(resp);
       console.log(
         `Error occurred during ${mutationName} operation on ${conditionJsonFilename}:`
       );

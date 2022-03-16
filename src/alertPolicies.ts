@@ -155,7 +155,7 @@ async function syncPolicy(
   }
 
   // Write response back to local data (e.g. add ID if policy created)
-  nrResponse
+  await nrResponse
     .then((resp) => {
       const remotePolicy = JSON.stringify(
         resp.data.data[`${mutationName}`] as AlertPolicyNerdGraph
