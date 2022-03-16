@@ -96,6 +96,8 @@ export async function syncPolicies(env: Environment) {
       );
     }
   });
+
+  console.log('Alert Policy sync procedure complete (with or without actions)');
 }
 
 async function syncPolicy(
@@ -176,6 +178,4 @@ async function syncPolicy(
       console.log(resp.data.errors);
       throw Error('AlertSync: Error occurred when syncing alert policies');
     });
-
-  console.log('Alert Policy sync procedure complete (with or without actions)');
 }

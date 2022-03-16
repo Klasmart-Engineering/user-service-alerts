@@ -141,6 +141,10 @@ export async function syncConditions(env: Environment) {
       }
     );
   });
+
+  console.log(
+    'Alert Condition sync procedure complete (with or without actions)'
+  );
 }
 
 async function syncCondition(
@@ -172,12 +176,10 @@ async function syncCondition(
           id: localCondition.id,
           condition: {
             enabled: localCondition.enabled,
-            id: localCondition.id,
             name: localCondition.name,
             nrql: {
               query: localCondition.nrql.query,
             },
-            policyId: localCondition.policyId,
             runbookUrl: localCondition.runbookUrl,
             signal: {
               aggregationDelay: localCondition.signal?.aggregationDelay,
@@ -266,8 +268,4 @@ async function syncCondition(
       console.log(resp.data.errors);
       throw Error('AlertSync: Error occurred when syncing alert conditions');
     });
-
-  console.log(
-    'Alert Condition sync procedure complete (with or without actions)'
-  );
 }
