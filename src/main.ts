@@ -6,8 +6,12 @@ console.log('Beginning alert definitions syncing for User Service');
 
 // TODO: take environment value as input from shell script
 
-// First sync policies (create; update)
-void syncPolicies(Environment.ALPHA);
+async function main() {
+  // First sync policies (create; update)
+  await syncPolicies(Environment.ALPHA);
 
-// Then sync each policy's conditions (create; update; delete)
-void syncConditions(Environment.ALPHA);
+  // Then sync each policy's conditions (create; update; delete)
+  await syncConditions(Environment.ALPHA);
+}
+
+main();

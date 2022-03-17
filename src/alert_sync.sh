@@ -23,7 +23,6 @@ do
     esac
 done
 
-echo "$env"
 echo "TO-DO: pass in environment as variable into npm run alert-sync command"
 
 read -p "Do you wish to perform the sync (y/n)?" choice

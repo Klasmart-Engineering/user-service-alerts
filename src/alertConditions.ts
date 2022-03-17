@@ -141,10 +141,12 @@ export async function syncConditions(env: Environment) {
       (remoteCondId) => !localPolicyConditionIds.includes(remoteCondId)
     );
 
-    await deleteRemotePolicyConditions(
-      remotePolicyConditionIdsToDelete,
-      apiKey
-    );
+    if (remotePolicyConditionIdsToDelete.length) {
+      await deleteRemotePolicyConditions(
+        remotePolicyConditionIdsToDelete,
+        apiKey
+      );
+    }
   });
 
   console.log(
