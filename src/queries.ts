@@ -155,3 +155,11 @@ export const CREATE_POLICY_CONDITION = gql`
     }
   }
 `;
+
+export const DELETE_POLICY_CONDITION = gql`
+  mutation deletePolicyCondition($accountId: Int!, $id: ID!) {
+    alertsConditionDelete(accountId: $accountId, id: $id) {
+      id
+    }
+  }
+`;

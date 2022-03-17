@@ -39,3 +39,7 @@ export interface AlertConditionNerdGraph {
     }
   ];
 }
+
+export interface DeletedAlertCondition {
+  id: string;
+}
