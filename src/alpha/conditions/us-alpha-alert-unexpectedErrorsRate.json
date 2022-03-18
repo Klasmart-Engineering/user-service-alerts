@@ -1,6 +1,6 @@
 {
   "enabled": false,
-  "id": "1016182",
+  "id": "1016204",
   "name": "Unexpected Errors Rate (Alpha)",
   "nrql": {
     "query": "SELECT rate(average(newrelic.goldenmetrics.apm.application.errorRate), 1 minute) as 'Error Rate' FROM Metric WHERE appName LIKE 'user-service%alpha%' AND appName NOT LIKE '%global%' FACET appName"
