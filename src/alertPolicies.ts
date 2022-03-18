@@ -56,47 +56,51 @@ export async function syncPolicies(env: Environment) {
     .readdirSync(policyFolderPath)
     .filter((file) => path.extname(file) === '.json');
 
-  policyJsonsInLocal.forEach(async (policyJsonFilename) => {
-    const fileData = fs.readFileSync(
-      path.join(policyFolderPath, policyJsonFilename)
-    );
-    const localPolicy = JSON.parse(fileData.toString()) as AlertPolicyNerdGraph;
+  if (policyJsonsInLocal.length) {
+    policyJsonsInLocal.forEach(async (policyJsonFilename) => {
+      const fileData = fs.readFileSync(
+        path.join(policyFolderPath, policyJsonFilename)
+      );
+      const localPolicy = JSON.parse(
+        fileData.toString()
+      ) as AlertPolicyNerdGraph;
 
-    // Find corresponding remote policy, if any
-    const correspondingRemotePolicy = remotePolicies.find((remotePolicy) => {
-      if (localPolicy.id) {
-        return localPolicy.id == remotePolicy.id!; // Remote policy ID always exists
+      // Find corresponding remote policy, if any
+      const correspondingRemotePolicy = remotePolicies.find((remotePolicy) => {
+        if (localPolicy.id) {
+          return localPolicy.id == remotePolicy.id!; // Remote policy ID always exists
+        } else {
+          return localPolicy.name == remotePolicy.name; // Remote policy name always exists
+        }
+      });
+
+      if (correspondingRemotePolicy) {
+        // Update case
+        if (
+          localPolicy.id &&
+          objectToKey({ localPolicy }) !==
+            objectToKey({ correspondingRemotePolicy })
+        ) {
+          await syncPolicy(
+            env,
+            localPolicy,
+            policyJsonFilename,
+            apiKey,
+            AlertOpMode.UPDATE
+          );
+        }
       } else {
-        return localPolicy.name == remotePolicy.name; // Remote policy name always exists
-      }
-    });
-
-    if (correspondingRemotePolicy) {
-      // Update case
-      if (
-        localPolicy.id &&
-        objectToKey({ localPolicy }) !==
-          objectToKey({ correspondingRemotePolicy })
-      ) {
+        // Creation case
         await syncPolicy(
           env,
           localPolicy,
           policyJsonFilename,
           apiKey,
-          AlertOpMode.UPDATE
+          AlertOpMode.CREATE
         );
       }
-    } else {
-      // Creation case
-      await syncPolicy(
-        env,
-        localPolicy,
-        policyJsonFilename,
-        apiKey,
-        AlertOpMode.CREATE
-      );
-    }
-  });
+    });
+  }
 
   console.log('Alert Policy sync procedure complete (with or without actions)');
 }

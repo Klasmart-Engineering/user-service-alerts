@@ -75,45 +75,47 @@ export async function syncConditions(env: Environment) {
     // - determine create/update
     // - execute it with the API
     // - update local with auto-updated remote fields (e.g. ID)
-    localPolicyConditions.forEach(
-      async (localCondition, localConditionFilename) => {
-        const correspondingRemoteCondition = remotePolicyConditions.find(
-          (remoteCondition) => {
-            if (localCondition.id) {
-              return localCondition.id == remoteCondition.id!; // Remote condition ID always exists
-            } else {
-              return localCondition.name == remoteCondition.name; // Remote condition name always exists
+    if (localPolicyConditions.size) {
+      localPolicyConditions.forEach(
+        async (localCondition, localConditionFilename) => {
+          const correspondingRemoteCondition = remotePolicyConditions.find(
+            (remoteCondition) => {
+              if (localCondition.id) {
+                return localCondition.id == remoteCondition.id!; // Remote condition ID always exists
+              } else {
+                return localCondition.name == remoteCondition.name; // Remote condition name always exists
+              }
             }
-          }
-        );
+          );
 
-        if (correspondingRemoteCondition) {
-          // Update case
-          if (
-            localCondition.id &&
-            objectToKey({ localCondition }) !==
-              objectToKey({ correspondingRemoteCondition })
-          ) {
+          if (correspondingRemoteCondition) {
+            // Update case
+            if (
+              localCondition.id &&
+              objectToKey({ localCondition }) !==
+                objectToKey({ correspondingRemoteCondition })
+            ) {
+              await syncCondition(
+                env,
+                localCondition,
+                localConditionFilename,
+                apiKey,
+                AlertOpMode.UPDATE
+              );
+            }
+          } else {
+            // Creation case
             await syncCondition(
               env,
               localCondition,
               localConditionFilename,
               apiKey,
-              AlertOpMode.UPDATE
+              AlertOpMode.CREATE
             );
           }
-        } else {
-          // Creation case
-          await syncCondition(
-            env,
-            localCondition,
-            localConditionFilename,
-            apiKey,
-            AlertOpMode.CREATE
-          );
         }
-      }
-    );
+      );
+    }
   });
 
   console.log(
