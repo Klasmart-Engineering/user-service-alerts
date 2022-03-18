@@ -71,6 +71,13 @@ export async function syncConditions(env: Environment) {
       apiKey
     );
 
+    console.log('LOCAL POLICY:');
+    console.log(localPolicy);
+    console.log('LOCAL POLICY CONDITIONS:');
+    console.log(localPolicyConditions);
+    console.log('REMOTE POLICY CONDITIONS:');
+    console.log(remotePolicyConditions);
+
     // Step through each local condition:
     // - determine create/update
     // - execute it with the API
