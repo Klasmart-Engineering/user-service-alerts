@@ -1,0 +1,25 @@
+{
+  "enabled": false,
+  "id": "1015186",
+  "name": "High Response Time (Prod)",
+  "nrql": {
+    "query": "SELECT rate(average(newrelic.goldenmetrics.apm.application.responseTimeMs), 1 minute) FROM Metric WHERE appName LIKE 'user-service%prod%' AND appName NOT LIKE '%global%' FACET appName"
+  },
+  "policyId": "319559",
+  "runbookUrl": null,
+  "signal": {
+    "aggregationDelay": 120,
+    "aggregationMethod": "EVENT_FLOW",
+    "aggregationWindow": 60
+  },
+  "terms": [
+    {
+      "operator": "ABOVE",
+      "priority": "CRITICAL",
+      "threshold": 1000,
+      "thresholdDuration": 300,
+      "thresholdOccurrences": "ALL"
+    }
+  ],
+  "type": "STATIC"
+}
