@@ -6,12 +6,10 @@ import { config } from '../config';
 import {
   AlertConditionNerdGraph,
   AlertOpMode,
-  DeletedAlertCondition,
   Environment,
 } from '../model/nr-alerts';
 import {
   CREATE_POLICY_CONDITION,
-  DELETE_POLICY_CONDITION,
   QUERY_POLICY_CONDITIONS,
   UPDATE_POLICY_CONDITION,
 } from '../queries';
@@ -175,47 +173,4 @@ export async function syncCondition(
       console.log(resp.data.errors);
       throw Error('AlertSync: Error occurred when syncing alert conditions');
     });
-}
-
-export async function deleteRemotePolicyConditions(
-  idsToDelete: string[],
-  apiKey: string
-) {
-  const mutationName = 'alertsConditionDelete';
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let nrResponse: Promise<AxiosResponse<any>>;
-
-  idsToDelete.forEach(async (conditionId) => {
-    nrResponse = axios.post(
-      'https://api.eu.newrelic.com/graphql',
-      {
-        query: print(DELETE_POLICY_CONDITION),
-        variables: {
-          accountId: config.NR_ACCOUNT_ID,
-          id: conditionId,
-        },
-      },
-      {
-        headers: { 'Api-Key': apiKey, 'Content-Type': 'application/json' },
-      }
-    );
-
-    await nrResponse
-      .then((resp) => {
-        const deletedCondition = resp.data.data[
-          `${mutationName}`
-        ] as DeletedAlertCondition;
-        console.log(
-          `[${mutationName}]: alert condition ${deletedCondition.id} deleted from remote (no local copy)`
-        );
-      })
-      .catch((resp) => {
-        console.log(`Error occurred during ${mutationName} operation:`);
-        console.log(resp.data.errors);
-        throw Error(
-          'AlertSync: Error occurred when deleting alert conditions from remote'
-        );
-      });
-  });
 }

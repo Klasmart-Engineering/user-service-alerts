@@ -23,9 +23,7 @@ do
     esac
 done
 
-echo "TO-DO: pass in environment as variable into npm run alert-sync command"
-
 read -p "Do you wish to perform the sync (y/n)?" choice
 if [[ $choice =~ ^(y| ) ]] || [[ -z $choice ]]; then
-    npm run alert-sync
+    ts-node src/main.ts --env "$env"
 fi

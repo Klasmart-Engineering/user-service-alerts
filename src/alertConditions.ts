@@ -12,7 +12,6 @@ import {
 } from './model/nr-alerts';
 import { config } from './config';
 import {
-  deleteRemotePolicyConditions,
   fetchRemotePolicyConditions,
   syncCondition,
 } from './utils/alertConditionsUtils';
@@ -73,7 +72,7 @@ export async function syncConditions(env: Environment) {
     );
 
     // Step through each local condition:
-    // - determine create/update (delete comes later after loop)
+    // - determine create/update
     // - execute it with the API
     // - update local with auto-updated remote fields (e.g. ID)
     localPolicyConditions.forEach(
@@ -115,38 +114,6 @@ export async function syncConditions(env: Environment) {
         }
       }
     );
-
-    // Delete phase - determine which remote ones to delete (determined from not having a corresponding local copy)
-    const localPolicyConditionIds = conditionJsonsInLocal.map(
-      (conditionJsonFilename) => {
-        const fileData = fs.readFileSync(
-          path.join(conditionsFolderPath, conditionJsonFilename)
-        );
-        const localCondition = JSON.parse(
-          fileData.toString()
-        ) as AlertConditionNerdGraph;
-        return localCondition.id!;
-      }
-    );
-
-    const remotePolicyConditionIds = (
-      await fetchRemotePolicyConditions(
-        remotePolicyConditions,
-        localPolicy.id!,
-        apiKey
-      )
-    ).map((remoteCondition) => remoteCondition.id!);
-
-    const remotePolicyConditionIdsToDelete = remotePolicyConditionIds.filter(
-      (remoteCondId) => !localPolicyConditionIds.includes(remoteCondId)
-    );
-
-    if (remotePolicyConditionIdsToDelete.length) {
-      await deleteRemotePolicyConditions(
-        remotePolicyConditionIdsToDelete,
-        apiKey
-      );
-    }
   });
 
   console.log(
