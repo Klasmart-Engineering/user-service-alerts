@@ -1,9 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 
-import axios from 'axios';
 import dotenv from 'dotenv';
-import { print } from 'graphql';
 
 import { objectToKey } from './utils/stringUtils';
 import {
@@ -12,8 +10,7 @@ import {
   Environment,
 } from './model/nr-alerts';
 import { config } from './config';
-import { QUERY_POLICIES } from './queries';
-import { syncPolicy } from './utils/alertPoliciesUtils';
+import { fetchRemotePolicies, syncPolicy } from './utils/alertPoliciesUtils';
 
 export async function syncPolicies(env: Environment) {
   dotenv.config();
@@ -25,28 +22,7 @@ export async function syncPolicies(env: Environment) {
   let remotePolicies: AlertPolicyNerdGraph[] = [];
 
   // Fetch all existing policies from remote (NerdGraph API)
-  await axios
-    .post(
-      'https://api.eu.newrelic.com/graphql',
-      {
-        query: print(QUERY_POLICIES),
-        variables: {
-          accountId: config.NR_ACCOUNT_ID,
-        },
-      },
-      {
-        headers: { 'Api-Key': apiKey, 'Content-Type': 'application/json' },
-      }
-    )
-    .then((resp) => {
-      remotePolicies = resp.data.data.actor.account.alerts.policiesSearch
-        .policies as AlertPolicyNerdGraph[];
-    })
-    .catch((resp) => {
-      console.log('Error occurred when fetching alert policies:');
-      console.log(resp.data.errors);
-      throw Error('AlertSync: Error occurred when fetching alert policies');
-    });
+  remotePolicies = await fetchRemotePolicies(remotePolicies, apiKey);
 
   // Step through each local policy:
   // - determine create/update

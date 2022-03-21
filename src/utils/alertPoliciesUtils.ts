@@ -8,7 +8,37 @@ import {
   AlertPolicyNerdGraph,
   Environment,
 } from '../model/nr-alerts';
-import { CREATE_POLICY, UPDATE_POLICY } from '../queries';
+import { CREATE_POLICY, QUERY_POLICIES, UPDATE_POLICY } from '../queries';
+
+export async function fetchRemotePolicies(
+  remotePolicies: AlertPolicyNerdGraph[],
+  apiKey: string
+) {
+  await axios
+    .post(
+      'https://api.eu.newrelic.com/graphql',
+      {
+        query: print(QUERY_POLICIES),
+        variables: {
+          accountId: config.NR_ACCOUNT_ID,
+        },
+      },
+      {
+        headers: { 'Api-Key': apiKey, 'Content-Type': 'application/json' },
+      }
+    )
+    .then((resp) => {
+      remotePolicies = resp.data.data.actor.account.alerts.policiesSearch
+        .policies as AlertPolicyNerdGraph[];
+    })
+    .catch((resp) => {
+      console.log('Error occurred when fetching alert policies:');
+      console.log(resp.data.errors);
+      throw Error('AlertSync: Error occurred when fetching alert policies');
+    });
+
+  return remotePolicies;
+}
 
 export async function syncPolicy(
   env: Environment,
