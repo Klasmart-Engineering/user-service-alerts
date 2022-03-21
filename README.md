@@ -8,6 +8,10 @@ This repository provides a way to document `user-service`'s policy and condition
 
 Create and update for policies and conditions are the only operations available, where local data is the "source of truth" and takes precedence over remote data (and so the "write" direction goes from local to remote). Deletion is not available for safety reasons (e.g. it is very easy to accidentally select all remote conditions) and is to be done manually in the UI for a policy or condition you desire to delete.
 
+Configuring and syncing policies' notification channels is currently a manual procedure (i.e. in the UI), but can be added into this tool in future. This cannot be done via this repo's current policy mutations, but via dedicated notification channel mutations.
+
+For the full list of available NerdGraph mutations, see the [New Relic NerdGraph Explorer](https://api.eu.newrelic.com/graphiql).
+
 ## General Syncing Procedure
 
 Before proceeding with the below, make sure you know how to define what you want to create or update beforehand by reading the sections after this one.
