@@ -1,6 +1,6 @@
 {
   "enabled": false,
-  "id": "1016183",
+  "id": "1016433",
   "name": "High Response Time (Alpha)",
   "nrql": {
     "query": "SELECT rate(average(newrelic.goldenmetrics.apm.application.responseTimeMs), 1 minute) FROM Metric WHERE appName LIKE 'user-service%alpha%' AND appName NOT LIKE '%global%' FACET appName"

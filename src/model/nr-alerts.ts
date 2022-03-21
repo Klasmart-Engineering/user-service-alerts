@@ -22,7 +22,7 @@ export interface AlertConditionNerdGraph {
   nrql: {
     query: string;
   };
-  policyId?: string;
+  policyId: string;
   runbookUrl?: string;
   signal?: {
     aggregationDelay: number;
@@ -38,6 +38,7 @@ export interface AlertConditionNerdGraph {
       thresholdOccurrences: string;
     }
   ];
+  type?: string;
 }
 
 export interface DeletedAlertCondition {

@@ -51,7 +51,7 @@ export async function syncConditions(env: Environment) {
     .readdirSync(policyFolderPath)
     .filter((file) => path.extname(file) === '.json');
 
-  policyJsonsInLocal.forEach(async (policyJsonFilename) => {
+  for await (const policyJsonFilename of policyJsonsInLocal) {
     const fileData = fs.readFileSync(
       path.join(policyFolderPath, policyJsonFilename)
     );
@@ -59,9 +59,9 @@ export async function syncConditions(env: Environment) {
 
     // Gather local conditions for the policy
     localPolicyConditions = new Map(
-      [...conditionFilenameMap].filter(
-        (condMap) => condMap[1].policyId == localPolicy.id
-      )
+      [...conditionFilenameMap].filter((condMap) => {
+        return condMap[1].policyId === localPolicy.id;
+      })
     );
 
     // Gather remote conditions for the policy
@@ -71,59 +71,52 @@ export async function syncConditions(env: Environment) {
       apiKey
     );
 
-    console.log('LOCAL POLICY:');
-    console.log(localPolicy);
-    console.log('LOCAL POLICY CONDITIONS:');
-    console.log(localPolicyConditions);
-    console.log('REMOTE POLICY CONDITIONS:');
-    console.log(remotePolicyConditions);
-
     // Step through each local condition:
     // - determine create/update
     // - execute it with the API
     // - update local with auto-updated remote fields (e.g. ID)
     if (localPolicyConditions.size) {
-      localPolicyConditions.forEach(
-        async (localCondition, localConditionFilename) => {
-          const correspondingRemoteCondition = remotePolicyConditions.find(
-            (remoteCondition) => {
-              if (localCondition.id) {
-                return localCondition.id == remoteCondition.id!; // Remote condition ID always exists
-              } else {
-                return localCondition.name == remoteCondition.name; // Remote condition name always exists
-              }
+      for await (const localConditionFilenameMap of localPolicyConditions) {
+        const localConditionFilename = localConditionFilenameMap[0];
+        const localCondition = localConditionFilenameMap[1];
+        const correspondingRemoteCondition = remotePolicyConditions.find(
+          (remoteCondition) => {
+            if (localCondition.id) {
+              return localCondition.id == remoteCondition.id!; // Remote condition ID always exists
+            } else {
+              return localCondition.name == remoteCondition.name; // Remote condition name always exists
             }
-          );
+          }
+        );
 
-          if (correspondingRemoteCondition) {
-            // Update case
-            if (
-              localCondition.id &&
-              objectToKey({ localCondition }) !==
-                objectToKey({ correspondingRemoteCondition })
-            ) {
-              await syncCondition(
-                env,
-                localCondition,
-                localConditionFilename,
-                apiKey,
-                AlertOpMode.UPDATE
-              );
-            }
-          } else {
-            // Creation case
+        if (correspondingRemoteCondition) {
+          // Update case
+          if (
+            localCondition.id &&
+            objectToKey({ localCondition }) !==
+              objectToKey({ correspondingRemoteCondition })
+          ) {
             await syncCondition(
               env,
               localCondition,
               localConditionFilename,
               apiKey,
-              AlertOpMode.CREATE
+              AlertOpMode.UPDATE
             );
           }
+        } else {
+          // Creation case
+          await syncCondition(
+            env,
+            localCondition,
+            localConditionFilename,
+            apiKey,
+            AlertOpMode.CREATE
+          );
         }
-      );
+      }
     }
-  });
+  }
 
   console.log(
     'Alert Condition sync procedure complete (with or without actions)'

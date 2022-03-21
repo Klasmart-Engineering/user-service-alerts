@@ -22,7 +22,7 @@ export async function syncPolicies(env: Environment) {
     env == Environment.ALPHA
       ? config.ALPHA_POLICY_FILEPATH
       : config.PROD_POLICY_FILEPATH;
-  let remotePolicies: AlertPolicyNerdGraph[];
+  let remotePolicies: AlertPolicyNerdGraph[] = [];
 
   // Fetch all existing policies from remote (NerdGraph API)
   await axios
@@ -57,7 +57,7 @@ export async function syncPolicies(env: Environment) {
     .filter((file) => path.extname(file) === '.json');
 
   if (policyJsonsInLocal.length) {
-    policyJsonsInLocal.forEach(async (policyJsonFilename) => {
+    for await (const policyJsonFilename of policyJsonsInLocal) {
       const fileData = fs.readFileSync(
         path.join(policyFolderPath, policyJsonFilename)
       );
@@ -99,7 +99,7 @@ export async function syncPolicies(env: Environment) {
           AlertOpMode.CREATE
         );
       }
-    });
+    }
   }
 
   console.log('Alert Policy sync procedure complete (with or without actions)');
