@@ -155,14 +155,9 @@ export async function syncCondition(
       const remoteCondition = JSON.stringify(
         resp.data.data[`${mutationName}`] as AlertConditionNerdGraph
       );
-      fs.writeFile(
+      fs.writeFileSync(
         path.join(conditionsFolderPath, conditionJsonFilename),
-        remoteCondition,
-        (error) => {
-          if (error) {
-            throw error;
-          }
-        }
+        remoteCondition
       );
       console.log(`[${mutationName}]: ${conditionJsonFilename} processed`);
     })

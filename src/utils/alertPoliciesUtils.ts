@@ -102,14 +102,9 @@ export async function syncPolicy(
       const remotePolicy = JSON.stringify(
         resp.data.data[`${mutationName}`] as AlertPolicyNerdGraph
       );
-      fs.writeFile(
+      fs.writeFileSync(
         path.join(policyFolderPath, policyJsonFilename),
-        remotePolicy,
-        (error) => {
-          if (error) {
-            throw error;
-          }
-        }
+        remotePolicy
       );
       console.log(`[${mutationName}]: ${policyJsonFilename} processed`);
     })
